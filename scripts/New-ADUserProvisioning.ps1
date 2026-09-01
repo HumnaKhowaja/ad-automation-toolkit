@@ -265,6 +265,14 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
         return
     }
 
-    Write-Host "`nProvisioning complete for $username. User must change password at next logon." -ForegroundColor Yellow
-    Write-Host "Audit log: $LogPath"
+Write-Host "`nProvisioning complete for $username. User must change password at next logon." -ForegroundColor Yellow
+Write-Host "Audit log: $LogPath"
+}
+elseif ($WhatIfPreference) {
+    foreach ($group in $targetGroups) {
+        $null = $PSCmdlet.ShouldProcess(
+            $username,
+            "Add to security group '$group'"
+        )
+    }
 }
