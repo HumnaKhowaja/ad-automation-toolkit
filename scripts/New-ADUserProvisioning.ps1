@@ -1,3 +1,6 @@
+#requires -Version 5.1
+#requires -Modules ActiveDirectory
+
 <#
 .SYNOPSIS
     Provisions a new Active Directory user account with validation, secure password
@@ -101,8 +104,7 @@ param(
     [string]$LogPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "AD-Provisioning-AuditLog.csv")
 )
 
-Import-Module ActiveDirectory
-
+Import-Module ActiveDirectory -ErrorAction Stop
 function Write-AuditLog {
     param(
         [string]$Action,
@@ -110,15 +112,27 @@ function Write-AuditLog {
         [string]$Detail,
         [string]$Result
     )
-    $entry = [PSCustomObject]@{
-        Timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-        RunBy     = "$env:USERDOMAIN\$env:USERNAME"
-        Action    = $Action
-        Username  = $Username
-        Detail    = $Detail
-        Result    = $Result
+
+    try {
+        $entry = [PSCustomObject]@{
+            Timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+            RunBy      = "$env:USERDOMAIN\$env:USERNAME"
+            Action     = $Action
+            Username   = $Username
+            Detail     = $Detail
+            Result     = $Result
+        }
+
+        $entry | Export-Csv `
+            -LiteralPath $LogPath `
+            -Append `
+            -NoTypeInformation `
+            -Encoding UTF8 `
+            -ErrorAction Stop
     }
-    $entry | Export-Csv -Path $LogPath -Append -NoTypeInformation
+    catch {
+        Write-Warning "Audit logging failed: $($_.Exception.Message)"
+    }
 }
 
 # --- Load group map (avoids hard-coding department/group names in the script) ---
@@ -176,7 +190,8 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
             -ChangePasswordAtLogon $true `
             -Enabled $true `
             -Department $Department `
-            -PassThru
+            -PassThru `
+            -ErrorAction Stop
 
         Write-Host "Created user account: $username" -ForegroundColor Green
         Write-AuditLog -Action "CreateUser" -Username $username -Detail "OU=$OU; Department=$Department" -Result "Success"
@@ -203,7 +218,7 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
 
         Write-Warning "Rolling back: removing partially-provisioned account '$username' (assigned groups: $($assignedGroups -join ', '))."
         try {
-            Remove-ADUser -Identity $username -Confirm:$false
+            Remove-ADUser -Identity $username -Confirm:$false -ErrorAction Stop
             Write-AuditLog -Action "Rollback" -Username $username -Detail "Removed after group assignment failure" -Result "Success"
         }
         catch {
