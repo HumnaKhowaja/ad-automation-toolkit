@@ -95,10 +95,10 @@ param(
     [string]$Domain = (Get-ADDomain).DNSRoot,
 
     [Parameter(Mandatory = $false)]
-    [string]$GroupMapPath = ".\group-map.json",
+    [string]$GroupMapPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "group-map.json"),
 
     [Parameter(Mandatory = $false)]
-    [string]$LogPath = ".\AD-Provisioning-AuditLog.csv"
+    [string]$LogPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "AD-Provisioning-AuditLog.csv")
 )
 
 Import-Module ActiveDirectory
