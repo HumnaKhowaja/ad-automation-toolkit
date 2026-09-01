@@ -1,4 +1,5 @@
 # AD Automation Toolkit
+> **Important:** Test all scripts in a lab domain or non-production OU before using them in production.
 
 PowerShell scripts that automate common Active Directory user lifecycle tasks — the kind of repetitive, error-prone work that eats up hours in any IT admin's week and is a common source of onboarding/offboarding mistakes when done manually.
 
@@ -10,7 +11,7 @@ In a typical office IT environment, user provisioning, password resets, and offb
 | Script | What it does |
 |---|---|
 | `New-ADUserProvisioning.ps1` | Creates a new AD user account with pre-flight validation, secure password handling, audit logging, and automatic rollback if group assignment fails |
-| *(more coming daily)* | Password reset, offboarding/account disable, bulk CSV import |
+| *Planned* | Password reset, secure offboarding, and bulk CSV provisioning |
 
 ### `New-ADUserProvisioning.ps1` features
 - **`-WhatIf` / `-Confirm` support** — preview exactly what the script would do before any change is made
@@ -26,14 +27,14 @@ In a typical office IT environment, user provisioning, password resets, and offb
 - **Does not need to run on a domain controller.** Any domain-joined machine with the RSAT Active Directory PowerShell module installed and network access to a DC will work.
 - PowerShell 5.1+ with the `ActiveDirectory` module (RSAT)
 - An account with delegated permission to create user objects and manage group membership in the target OU (Domain Admin is not required)
-- A `group-map.json` file in the same directory (or pointed to via `-GroupMapPath`) describing department → group mappings for your environment — see `group-map.json` in this repo for the format
+- A `group-map.json` configuration file describing department-to-group mappings for your environment. The sample file is included in the repository root and can be selected with `-GroupMapPath`.
 
 ## Usage
 Preview first with `-WhatIf`, then run for real:
 ```powershell
 $Password = Read-Host "Enter temporary password" -AsSecureString
 
-.\New-ADUserProvisioning.ps1 `
+.\scripts\New-ADUserProvisioning.ps1 `
     -FirstName "Jane" `
     -LastName "Doe" `
     -Department "Billing" `
