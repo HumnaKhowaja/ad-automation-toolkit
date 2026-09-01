@@ -246,6 +246,7 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
             -Username $username `
             -Detail $group `
             -Result "Success"
+         }
     }
 }
     catch {
