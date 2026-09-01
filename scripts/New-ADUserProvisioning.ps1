@@ -105,6 +105,7 @@ param(
 )
 
 Import-Module ActiveDirectory -ErrorAction Stop
+
 function Write-AuditLog {
     param(
         [string]$Action,
@@ -229,13 +230,24 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
     # --- Assign group membership, with rollback if it fails partway through ---
     $assignedGroups = @()
     try {
-        foreach ($group in $targetGroups) {
-            Add-ADGroupMember -Identity $group -Members $username -ErrorAction Stop
-            $assignedGroups += $group
-            Write-Host "Added $username to group: $group" -ForegroundColor Green
-            Write-AuditLog -Action "AddToGroup" -Username $username -Detail $group -Result "Success"
-        }
+       foreach ($group in $targetGroups) {
+    if ($PSCmdlet.ShouldProcess($username, "Add to security group '$group'")) {
+        Add-ADGroupMember `
+            -Identity $group `
+            -Members $createdUser `
+            -ErrorAction Stop
+
+        $assignedGroups += $group
+
+        Write-Host "Added $username to group: $group" -ForegroundColor Green
+
+        Write-AuditLog `
+            -Action "AddToGroup" `
+            -Username $username `
+            -Detail $group `
+            -Result "Success"
     }
+}
     catch {
         Write-Error "Group assignment failed on '$group': $_"
         Write-AuditLog -Action "AddToGroup" -Username $username -Detail "$group : $($_.Exception.Message)" -Result "Failed"
