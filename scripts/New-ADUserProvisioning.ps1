@@ -156,22 +156,46 @@ foreach ($group in $targetGroups) {
     }
 }
 
-# --- Generate a unique username, handling collisions ---
-$baseUsername = ("{0}.{1}" -f $FirstName, $LastName).ToLower() -replace '\s', ''
-$username = $baseUsername
-$suffix = 1
-while (Get-ADUser -Filter "SamAccountName -eq '$username'" -ErrorAction SilentlyContinue) {
-    $suffix++
-    $username = "$baseUsername$suffix"
-}
+# --- Generate a safe, unique username and UPN ---
+$cleanFirstName = $FirstName.ToLowerInvariant() -replace '[^a-z0-9]', ''
+$cleanLastName = $LastName.ToLowerInvariant() -replace '[^a-z0-9]', ''
 
-$upn = "$username@$Domain"
-
-# --- Check for duplicate UPN independently (in case of legacy accounts with mismatched sAMAccountName) ---
-if (Get-ADUser -Filter "UserPrincipalName -eq '$upn'" -ErrorAction SilentlyContinue) {
-    Write-Error "A user with UPN '$upn' already exists. Aborting."
+if ([string]::IsNullOrWhiteSpace($cleanFirstName) -or
+    [string]::IsNullOrWhiteSpace($cleanLastName)) {
+    Write-Error "FirstName and LastName must contain characters that can be used in a username."
     return
 }
+
+$baseUsername = "$cleanFirstName.$cleanLastName"
+$counter = 1
+
+do {
+    $suffix = if ($counter -eq 1) { "" } else { $counter.ToString() }
+    $maximumBaseLength = 20 - $suffix.Length
+
+    $trimmedBase = $baseUsername.Substring(
+        0,
+        [Math]::Min($baseUsername.Length, $maximumBaseLength)
+    )
+
+    $username = "$trimmedBase$suffix"
+    $upn = "$username@$Domain"
+
+    $escapedUsername = $username.Replace("'", "''")
+    $escapedUpn = $upn.Replace("'", "''")
+
+    $existingUser = Get-ADUser `
+        -Filter "SamAccountName -eq '$escapedUsername' -or UserPrincipalName -eq '$escapedUpn'" `
+        -ErrorAction Stop
+
+    $counter++
+
+    if ($counter -gt 9999) {
+        Write-Error "Unable to generate a unique username for $FirstName $LastName."
+        return
+    }
+}
+while ($existingUser)
 
 $displayName = "$FirstName $LastName"
 $createdUser = $null
