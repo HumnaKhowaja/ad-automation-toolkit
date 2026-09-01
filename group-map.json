@@ -1,0 +1,5 @@
+{
+  "Billing": ["Billing-Staff", "VPN-Users"],
+  "IT": ["IT-Admins", "VPN-Users", "Server-Access"],
+  "Administration": ["Admin-Staff", "VPN-Users"]
+}
