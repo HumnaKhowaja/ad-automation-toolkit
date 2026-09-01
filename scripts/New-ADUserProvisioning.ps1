@@ -137,17 +137,35 @@ function Write-AuditLog {
 }
 
 # --- Load group map (avoids hard-coding department/group names in the script) ---
-if (-not (Test-Path $GroupMapPath)) {
-    Write-Error "Group map file not found at '$GroupMapPath'. Create one before running (see script header)."
+if (-not (Test-Path -LiteralPath $GroupMapPath -PathType Leaf)) {
+    Write-Error "Group map file not found at '$GroupMapPath'."
     return
 }
-$groupMap = Get-Content $GroupMapPath -Raw | ConvertFrom-Json
 
-if (-not $groupMap.$Department) {
-    Write-Error "No group mapping found for department '$Department' in $GroupMapPath."
+try {
+    $groupMap = Get-Content `
+        -LiteralPath $GroupMapPath `
+        -Raw `
+        -ErrorAction Stop |
+        ConvertFrom-Json -ErrorAction Stop
+}
+catch {
+    Write-Error "Unable to read group map '$GroupMapPath': $($_.Exception.Message)"
     return
 }
-$targetGroups = $groupMap.$Department
+
+# --- Load the department's configured security groups ---
+if (-not $groupMap.$Department) {
+    Write-Error "No group mapping found for department '$Department' in '$GroupMapPath'."
+    return
+}
+
+$targetGroups = @($groupMap.$Department)
+
+if ($targetGroups.Count -eq 0) {
+    Write-Error "Department '$Department' does not have any security groups configured."
+    return
+}
 
 # --- Validate all target groups exist before touching anything ---
 foreach ($group in $targetGroups) {
