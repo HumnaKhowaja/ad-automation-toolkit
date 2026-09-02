@@ -42,14 +42,14 @@
     Keeping this external avoids hard-coding group names into the script itself.
 
 .PARAMETER LogPath
-    Path to the audit log CSV. Defaults to .\AD-Provisioning-AuditLog.csv in the
-    current directory. Every run appends who ran it, when, what account was
+    Path to the audit log CSV. By default, the log is stored in the repository
+root as AD-Provisioning-AuditLog.csv. Every run appends who ran it, when, what account was
     created, and which groups were assigned (or attempted).
 
 .EXAMPLE
     $Password = Read-Host "Enter temporary password" -AsSecureString
 
-    .\New-ADUserProvisioning.ps1 `
+    .\scripts\New-ADUserProvisioning.ps1 `
         -FirstName "Jane" `
         -LastName "Doe" `
         -Department "Billing" `
@@ -273,7 +273,7 @@ if ($PSCmdlet.ShouldProcess($username, "Create AD user account")) {
 
         Write-Warning "Rolling back: removing partially-provisioned account '$username' (assigned groups: $($assignedGroups -join ', '))."
         try {
-            Remove-ADUser -Identity $username -Confirm:$false -ErrorAction Stop
+            Remove-ADUser -Identity $createdUser -Confirm:$false -ErrorAction Stop
             Write-AuditLog -Action "Rollback" -Username $username -Detail "Removed after group assignment failure" -Result "Success"
         }
         catch {
