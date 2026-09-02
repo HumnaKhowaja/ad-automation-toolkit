@@ -43,8 +43,8 @@
 
 .PARAMETER LogPath
     Path to the audit log CSV. By default, the log is stored in the repository
-root as AD-Provisioning-AuditLog.csv. Every run appends who ran it, when, what account was
-    created, and which groups were assigned (or attempted).
+    root as AD-Provisioning-AuditLog.csv. Every run appends who ran it, when, 
+    what account was created, and which groups were assigned (or attempted).
 
 .EXAMPLE
     $Password = Read-Host "Enter temporary password" -AsSecureString
